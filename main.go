@@ -139,7 +139,9 @@ func clearURLs(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "All URLs have been removed from the database.")
 }
 
+// fetchAndInsertURLs fetches the URLs from an external API and inserts them into the database
 func fetchAndInsertURLs(w http.ResponseWriter, r *http.Request) {
+	// Fetch data from the external API
 	resp, err := http.Get("https://shoti-server-production.up.railway.app/list")
 	if err != nil {
 		http.Error(w, "Error fetching URLs from external API", http.StatusInternalServerError)
@@ -147,12 +149,14 @@ func fetchAndInsertURLs(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	// Read the response body using io.ReadAll
+	body, err := io.ReadAll(resp.Body) // Correct way to read data in Go 1.16 and later
 	if err != nil {
 		http.Error(w, "Error reading response body", http.StatusInternalServerError)
 		return
 	}
 
+	// Parse the JSON response into a slice of URLs
 	var urls []struct {
 		URL string `json:"url"`
 	}
@@ -163,8 +167,12 @@ func fetchAndInsertURLs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Insert URLs into the database
 	for _, url := range urls {
+		// Generate a new UUID for the URL
 		urlID := uuid.New().String()
+
+		// Insert the URL into the database
 		query := "INSERT INTO urls (id, url) VALUES ($1, $2)"
 		_, err := db.Exec(query, urlID, url.URL)
 		if err != nil {
@@ -173,9 +181,11 @@ func fetchAndInsertURLs(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Send a response confirming that URLs were fetched and inserted
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, "URLs fetched and added to the database.")
 }
+
 
 
 func main() {
