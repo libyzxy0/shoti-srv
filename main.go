@@ -233,7 +233,7 @@ func getRandomVideo(w http.ResponseWriter, r *http.Request) {
 
         w.Header().Set("Content-Type", "application/json")
         encoder := json.NewEncoder(w)
-        encoder.SetIndent("", "    ")
+        encoder.SetIndent("", "  ")
         encoder.Encode(responseData)
         return
     }
@@ -250,7 +250,7 @@ func getRandomVideo(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json")
 
     encoder := json.NewEncoder(w)
-    encoder.SetIndent("", "    ")
+    encoder.SetIndent("", "  ")
     encoder.Encode(errorResponse)
 }
 
