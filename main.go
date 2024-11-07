@@ -136,11 +136,13 @@ func getVideoData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Println(videoInfo)
+	
+
 	responseData := map[string]interface{}{
 		"code":    200,
 		"message": "success",
 		"data": map[string]interface{}{
-			"_shoti_rank": "userRank",
 			"region":      videoInfo.Region,
 			"url":         "https://www.tikwm.com/video/media/hdplay/" + videoInfo.ID + ".mp4",
 			"cover":       videoInfo.Cover,
