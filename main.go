@@ -108,22 +108,33 @@ func getRandomURL() (string, error) {
 }
 
 func getVideoInfo(url string) (*VideoInfo, error) {
-    response, err := http.Get(fmt.Sprintf("https://tikwm.com/api?url=%s", url))
+    req, err := http.NewRequest("GET", fmt.Sprintf("https://tikwm.com/api?url=%s", url), nil)
     if err != nil {
-        return nil, err
+        return nil, fmt.Errorf("error creating request: %w", err)
+    }
+
+    req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+
+    client := &http.Client{}
+    response, err := client.Do(req)
+    if err != nil {
+        return nil, fmt.Errorf("error fetching video info: %w", err)
     }
     defer response.Body.Close()
 
     var videoInfo VideoInfo
     err = json.NewDecoder(response.Body).Decode(&videoInfo)
     if err != nil {
-        return nil, err
+        return nil, fmt.Errorf("error decoding video info: %w", err)
     }
 
-    fmt.Println("Video Info:", videoInfo)
+    if (videoInfo == VideoInfo{}) {
+        return nil, fmt.Errorf("empty or invalid response from API")
+    }
 
     return &videoInfo, nil
 }
+
 
 func getVideoData(w http.ResponseWriter, r *http.Request) {
     randomURL, err := getRandomURL()
@@ -139,8 +150,6 @@ func getVideoData(w http.ResponseWriter, r *http.Request) {
         http.Error(w, fmt.Sprintf("Error fetching video: %s", err), http.StatusInternalServerError)
         return
     }
-
-    fmt.Println(videoInfo)
 
     responseData := map[string]interface{}{
         "code":    200,
