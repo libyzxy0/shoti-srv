@@ -16,42 +16,58 @@ import (
 )
 
 type VideoInfo struct {
-    Code    int    `json:"code"`
-    Msg     string `json:"msg"`
-    Data    struct {
-        ID             string `json:"id"`
-        Region        string `json:"region"`
-        Title         string `json:"title"`
-        Cover         string `json:"cover"`
-        AI_Dynamic_Cover string `json:"ai_dynamic_cover"`
-        Origin_Cover  string `json:"origin_cover"`
-        Duration      int    `json:"duration"`
-        Play          string `json:"play"`
-        WMPlay        string `json:"wmplay"`
-        Size          int    `json:"size"`
-        WMSize        int    `json:"wm_size"`
-        Music         struct {
-            ID    string `json:"id"`
-            Title string `json:"title"`
-            Play  string `json:"play"`
-            Cover string `json:"cover"`
-        } `json:"music_info"`
-        PlayCount   int `json:"play_count"`
-        DiggCount   int `json:"digg_count"`
-        CommentCount int `json:"comment_count"`
-        ShareCount  int `json:"share_count"`
-        DownloadCount int `json:"download_count"`
-        CollectCount int `json:"collect_count"`
-        CreateTime  int64 `json:"create_time"`
-        Author struct {
-            ID       string `json:"id"`
-            UniqueID string `json:"unique_id"`
-            Nickname string `json:"nickname"`
-            Avatar   string `json:"avatar"`
-        } `json:"author"`
-    } `json:"data"`
+	Code    int    `json:"code"`
+	Msg     string `json:"msg"`
+	Data    struct {
+		ID               string `json:"id"`
+		Region           string `json:"region"`
+		Title            string `json:"title"`
+		Cover            string `json:"cover"`
+		AI_Dynamic_Cover string `json:"ai_dynamic_cover"`
+		Origin_Cover     string `json:"origin_cover"`
+		Duration         int    `json:"duration"`
+		Play             string `json:"play"`
+		WMPlay           string `json:"wmplay"`
+		Size             int    `json:"size"`
+		WMSize           int    `json:"wm_size"`
+		Music            struct {
+			ID    string `json:"id"`
+			Title string `json:"title"`
+			Play  string `json:"play"`
+			Cover string `json:"cover"`
+		} `json:"music_info"`
+		PlayCount    int `json:"play_count"`
+		DiggCount    int `json:"digg_count"`
+		CommentCount int `json:"comment_count"`
+		ShareCount   int `json:"share_count"`
+		DownloadCount int `json:"download_count"`
+		CollectCount int `json:"collect_count"`
+		CreateTime   int64 `json:"create_time"`
+		Author struct {
+			ID       string `json:"id"`
+			UniqueID string `json:"unique_id"`
+			Nickname string `json:"nickname"`
+			Avatar   string `json:"avatar"`
+		} `json:"author"`
+	} `json:"data"`
 }
 
+type VideoDataResponse struct {
+	Code    int    `json:"code"`
+	Msg     string `json:"msg"`
+	Data    struct {
+		Region          string `json:"region"`
+		URL             string `json:"url"`
+		Cover           string `json:"cover"`
+		Title           string `json:"title"`
+		Duration        string `json:"duration"`
+		User            struct {
+			Username string `json:"username"`
+			Nickname string `json:"nickname"`
+			UserID   string `json:"userID"`
+		} `json:"user"`
+	} `json:"data"`
+}
 
 type URL struct {
 	ID  string `json:"id"`
@@ -133,69 +149,83 @@ func getRandomURL() (string, error) {
 }
 
 func getVideoInfo(url string) (*VideoInfo, error) {
-    req, err := http.NewRequest("GET", fmt.Sprintf("https://tikwm.com/api?url=%s", url), nil)
-    if err != nil {
-        return nil, fmt.Errorf("error creating request: %w", err)
-    }
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://tikwm.com/api?url=%s", url), nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %w", err)
+	}
 
-    req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
 
-    client := &http.Client{}
-    response, err := client.Do(req)
-    if err != nil {
-        return nil, fmt.Errorf("error fetching video info: %w", err)
-    }
-    defer response.Body.Close()
+	client := &http.Client{}
+	response, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching video info: %w", err)
+	}
+	defer response.Body.Close()
 
-    var videoInfo VideoInfo
-    err = json.NewDecoder(response.Body).Decode(&videoInfo)
-    if err != nil {
-        return nil, fmt.Errorf("error decoding video info: %w", err)
-    }
+	var videoInfo VideoInfo
+	err = json.NewDecoder(response.Body).Decode(&videoInfo)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding video info: %w", err)
+	}
 
-    if videoInfo.Code != 0 {
-        return nil, fmt.Errorf("API error: %s", videoInfo.Msg)
-    }
+	if videoInfo.Code != 0 {
+		return nil, fmt.Errorf("API error: %s", videoInfo.Msg)
+	}
 
-    return &videoInfo, nil
+	return &videoInfo, nil
 }
 
 func getVideoData(w http.ResponseWriter, r *http.Request) {
-    randomURL, err := getRandomURL()
-    if err != nil {
-        http.Error(w, fmt.Sprintf("Error fetching random URL: %s", err), http.StatusInternalServerError)
-        return
-    }
+	randomURL, err := getRandomURL()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error fetching random URL: %s", err), http.StatusInternalServerError)
+		return
+	}
 
-    fmt.Println("Fetching video for URL:", randomURL)
+	fmt.Println("Fetching video for URL:", randomURL)
 
-    videoInfo, err := getVideoInfo(randomURL)
-    if err != nil {
-        http.Error(w, fmt.Sprintf("Error fetching video: %s", err), http.StatusInternalServerError)
-        return
-    }
+	videoInfo, err := getVideoInfo(randomURL)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error fetching video: %s", err), http.StatusInternalServerError)
+		return
+	}
 
-    responseData := map[string]interface{}{
-        "code":    200,
-        "message": "success",
-        "data": map[string]interface{}{
-            "region":      videoInfo.Region,
-            "url":         "https://www.tikwm.com/video/media/hdplay/" + videoInfo.ID + ".mp4",
-            "cover":       videoInfo.Cover,
-            "title":       videoInfo.Title,
-            "duration":    fmt.Sprintf("%ds", videoInfo.Duration),
-            "user": map[string]interface{}{
-                "username": videoInfo.Author.UniqueID,
-                "nickname": videoInfo.Author.Nickname,
-                "userID":   videoInfo.Author.UserID,
-            },
-        },
-    }
+	responseData := VideoDataResponse{
+		Code:    200,
+		Msg:     "success",
+		Data: struct {
+			Region    string `json:"region"`
+			URL       string `json:"url"`
+			Cover     string `json:"cover"`
+			Title     string `json:"title"`
+			Duration  string `json:"duration"`
+			User      struct {
+				Username string `json:"username"`
+				Nickname string `json:"nickname"`
+				UserID   string `json:"userID"`
+			} `json:"user"`
+		}{
+			Region:   videoInfo.Data.Region,
+			URL:      "https://www.tikwm.com/video/media/hdplay/" + videoInfo.Data.ID + ".mp4",
+			Cover:    videoInfo.Data.Cover,
+			Title:    videoInfo.Data.Title,
+			Duration: fmt.Sprintf("%ds", videoInfo.Data.Duration),
+			User: struct {
+				Username string `json:"username"`
+				Nickname string `json:"nickname"`
+				UserID   string `json:"userID"`
+			}{
+				Username: videoInfo.Data.Author.UniqueID,
+				Nickname: videoInfo.Data.Author.Nickname,
+				UserID:   videoInfo.Data.Author.ID,
+			},
+		},
+	}
 
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(responseData)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(responseData)
 }
-
 
 func addURL(w http.ResponseWriter, r *http.Request) {
 	var url URL
@@ -251,30 +281,17 @@ func getURLs(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(urls)
 }
 
-func clearURLs(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Invalid method. Only GET is allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	_, err := db.Exec("DELETE FROM urls")
-	if err != nil {
-		http.Error(w, "Error clearing URLs from database", http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, "All URLs have been removed from the database.")
-}
-
 func main() {
 	initDB()
 
-	http.HandleFunc("/new", addURL)
-	http.HandleFunc("/list", getURLs)
-	http.HandleFunc("/clr", clearURLs)
-	http.HandleFunc("/get", getVideoData)
+	http.HandleFunc("/add-url", addURL)
+	http.HandleFunc("/get-urls", getURLs)
+	http.HandleFunc("/video-data", getVideoData)
 
-	fmt.Println("Server started on port 8080...")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Printf("Server starting on port %s...\n", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
