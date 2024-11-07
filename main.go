@@ -179,11 +179,11 @@ func fetchAndInsertURLs(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	initDB()
-	fetchAndInsertURLs()
 
 	http.HandleFunc("/new", addURL)
 	http.HandleFunc("/get", getURLs)
 	http.HandleFunc("/clr", clearURLs)
+	http.HandleFunc("/fetch", fetchAndInsertURLs)
 	
 	fmt.Println("Server started on port 8080...")
 	log.Fatal(http.ListenAndServe(":8080", nil))
