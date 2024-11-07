@@ -21,19 +21,22 @@ type URL struct {
 var db *sql.DB
 
 func initDB() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("Warning: Error loading .env file. Using environment variables directly.")
-	}
 
-	// Load environment variables with fallback options
+	// only load the .env file when running locally
+// check for a RAILWAY_ENVIRONMENT, if not found, code is running locally
+if _, exists := os.LookupEnv("RAILWAY_ENVIRONMENT"); exists == false {
+    if err := godotenv.Load(); err != nil {
+        log.Fatal("error loading .env file:", err)
+    }
+}
+
 	connStr := fmt.Sprintf(
 		"user=%s password=%s host=%s dbname=%s sslmode=%s",
-		getEnv("DB_USER", "default_user"),
-		getEnv("DB_PASSWORD", "default_password"),
-		getEnv("DB_HOST", "localhost"),
-		getEnv("DB_NAME", "default_db"),
-		getEnv("DB_SSLMODE", "disable"),
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_HOST"),
+		os.Getenv("DB_NAME"),
+		os.Getenv("DB_SSLMODE"),
 	)
 
 	db, err = sql.Open("postgres", connStr)
@@ -120,19 +123,12 @@ func getURLs(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(urls)
 }
 
-func getEnv(key, fallback string) string {
-	if value, exists := os.LookupEnv(key); exists {
-		return value
-	}
-	return fallback
-}
-
 func main() {
 	initDB()
 
 	http.HandleFunc("/new", addURL)
 	http.HandleFunc("/get", getURLs)
 
-	fmt.Println("Server started on port 8080...")
+	fmt.Println("server started on port 8080...")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
