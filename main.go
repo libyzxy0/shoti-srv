@@ -136,9 +136,10 @@ func getVideoData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Print the video information to the server log (for debugging purposes)
 	fmt.Println(videoInfo)
-	
 
+	// Prepare the response data
 	responseData := map[string]interface{}{
 		"code":    200,
 		"message": "success",
@@ -156,6 +157,7 @@ func getVideoData(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
+	// Send the JSON response
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(responseData)
 }
