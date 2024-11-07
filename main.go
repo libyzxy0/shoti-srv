@@ -139,6 +139,6 @@ func main() {
 	http.HandleFunc("/new", addURL)
 	http.HandleFunc("/get", getURLs)
 
-	fmt.Println("Starting server on port 8080")
+	fmt.Println("Starting server on port 8080...")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
