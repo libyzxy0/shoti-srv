@@ -23,16 +23,17 @@ var db *sql.DB
 func initDB() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Println("Warning: Error loading .env file. Using environment variables directly.")
 	}
 
+	// Load environment variables with fallback options
 	connStr := fmt.Sprintf(
 		"user=%s password=%s host=%s dbname=%s sslmode=%s",
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_NAME"),
-		os.Getenv("DB_SSLMODE"),
+		getEnv("DB_USER", "default_user"),
+		getEnv("DB_PASSWORD", "default_password"),
+		getEnv("DB_HOST", "localhost"),
+		getEnv("DB_NAME", "default_db"),
+		getEnv("DB_SSLMODE", "disable"),
 	)
 
 	db, err = sql.Open("postgres", connStr)
@@ -119,12 +120,19 @@ func getURLs(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(urls)
 }
 
+func getEnv(key, fallback string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return fallback
+}
+
 func main() {
 	initDB()
 
 	http.HandleFunc("/new", addURL)
 	http.HandleFunc("/get", getURLs)
 
-	fmt.Println("server started on port 8080...")
+	fmt.Println("Server started on port 8080...")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
