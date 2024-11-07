@@ -106,9 +106,9 @@ func initDB() {
 
 	fmt.Println("Connected to the database.")
 
-	setupSchema()
+	/* setupSchema() */
 }
-
+/*
 func setupSchema() {
 	query := `
 	CREATE TABLE IF NOT EXISTS urls (
@@ -123,6 +123,7 @@ func setupSchema() {
 	}
 	fmt.Println("Database schema set up successfully.")
 }
+*/
 
 func getRandomURL() (string, error) {
 	var count int
@@ -176,55 +177,81 @@ func getVideoInfo(url string) (*VideoInfo, error) {
 	return &videoInfo, nil
 }
 
-func getVideoData(w http.ResponseWriter, r *http.Request) {
-	randomURL, err := getRandomURL()
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Error fetching random URL: %s", err), http.StatusInternalServerError)
-		return
-	}
+func getRandomVideo(w http.ResponseWriter, r *http.Request) {
+    var (
+        randomURL string
+        err      error
+        attempts int
+    )
 
-	fmt.Println("Fetching video for URL:", randomURL)
+    maxAttempts := 3
 
-	videoInfo, err := getVideoInfo(randomURL)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Error fetching video: %s", err), http.StatusInternalServerError)
-		return
-	}
+    for attempts < maxAttempts {
+        randomURL, err = getRandomURL()
+        if err!= nil {
+            attempts++
+            continue
+        }
 
-	responseData := VideoDataResponse{
-		Code:    200,
-		Msg:     "success",
-		Data: struct {
-			Region    string `json:"region"`
-			URL       string `json:"url"`
-			Cover     string `json:"cover"`
-			Title     string `json:"title"`
-			Duration  string `json:"duration"`
-			User      struct {
-				Username string `json:"username"`
-				Nickname string `json:"nickname"`
-				UserID   string `json:"userID"`
-			} `json:"user"`
-		}{
-			Region:   videoInfo.Data.Region,
-			URL:      "https://www.tikwm.com/video/media/hdplay/" + videoInfo.Data.ID + ".mp4",
-			Cover:    videoInfo.Data.Cover,
-			Title:    videoInfo.Data.Title,
-			Duration: fmt.Sprintf("%ds", videoInfo.Data.Duration),
-			User: struct {
-				Username string `json:"username"`
-				Nickname string `json:"nickname"`
-				UserID   string `json:"userID"`
-			}{
-				Username: videoInfo.Data.Author.UniqueID,
-				Nickname: videoInfo.Data.Author.Nickname,
-				UserID:   videoInfo.Data.Author.ID,
-			},
-		},
-	}
+        videoInfo, err := getVideoInfo(randomURL)
+        if err!= nil {
+            attempts++
+            continue 
+        }
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(responseData)
+        responseData := VideoDataResponse{
+            Code:    200,
+            Msg:     "success",
+            Data: struct {
+                Region    string `json:"region"`
+                URL       string `json:"url"`
+                Cover     string `json:"cover"`
+                Title     string `json:"title"`
+                Duration  string `json:"duration"`
+                User      struct {
+                    Username string `json:"username"`
+                    Nickname string `json:"nickname"`
+                    UserID   string `json:"userID"`
+                } `json:"user"`
+            }{
+                Region:   videoInfo.Data.Region,
+                URL:      "https://www.tikwm.com/video/media/hdplay/" + videoInfo.Data.ID + ".mp4",
+                Cover:    videoInfo.Data.Cover,
+                Title:    videoInfo.Data.Title,
+                Duration: fmt.Sprintf("%ds", videoInfo.Data.Duration),
+                User: struct {
+                    Username string `json:"username"`
+                    Nickname string `json:"nickname"`
+                    UserID   string `json:"userID"`
+                }{
+                    Username: videoInfo.Data.Author.UniqueID,
+                    Nickname: videoInfo.Data.Author.Nickname,
+                    UserID:   videoInfo.Data.Author.ID,
+                },
+            },
+        }
+
+        w.Header().Set("Content-Type", "application/json")
+        encoder := json.NewEncoder(w)
+        encoder.SetIndent("", "    ")
+        encoder.Encode(responseData)
+        return
+    }
+
+    errorResponse := struct {
+        Code int    `json:"code"`
+        Msg  string `json:"msg"`
+    }{
+        Code: 400,
+        Msg:  "failed",
+    }
+
+    w.WriteHeader(http.StatusBadRequest)
+    w.Header().Set("Content-Type", "application/json")
+
+    encoder := json.NewEncoder(w)
+    encoder.SetIndent("", "    ")
+    encoder.Encode(errorResponse)
 }
 
 func addURL(w http.ResponseWriter, r *http.Request) {
@@ -286,7 +313,7 @@ func main() {
 
 	http.HandleFunc("/api/new", addURL)
 	http.HandleFunc("/api/list", getURLs)
-	http.HandleFunc("/api/get", getVideoData)
+	http.HandleFunc("/api/get", getRandomVideo)
 
 	port := os.Getenv("PORT")
 	if port == "" {
