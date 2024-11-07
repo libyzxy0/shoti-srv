@@ -122,12 +122,29 @@ func getURLs(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(urls)
 }
 
+func clearURLs(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Invalid method. Only GET is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	_, err := db.Exec("DELETE FROM urls")
+	if err != nil {
+		http.Error(w, "Error clearing URLs from database", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintln(w, "All URLs have been removed from the database.")
+}
+
 func main() {
 	initDB()
 
 	http.HandleFunc("/new", addURL)
 	http.HandleFunc("/get", getURLs)
-
+	http.HandleFunc("/clr", clearURLs)
+	
 	fmt.Println("Server started on port 8080...")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
