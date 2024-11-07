@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"io"
 
 	"github.com/joho/godotenv"
 	"github.com/google/uuid"
