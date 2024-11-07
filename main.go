@@ -138,8 +138,48 @@ func clearURLs(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "All URLs have been removed from the database.")
 }
 
+func fetchAndInsertURLs(w http.ResponseWriter, r *http.Request) {
+	resp, err := http.Get("https://shoti-server-production.up.railway.app/list")
+	if err != nil {
+		http.Error(w, "Error fetching URLs from external API", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		http.Error(w, "Error reading response body", http.StatusInternalServerError)
+		return
+	}
+
+	var urls []struct {
+		URL string `json:"url"`
+	}
+
+	err = json.Unmarshal(body, &urls)
+	if err != nil {
+		http.Error(w, "Error parsing response JSON", http.StatusInternalServerError)
+		return
+	}
+
+	for _, url := range urls {
+		urlID := uuid.New().String()
+		query := "INSERT INTO urls (id, url) VALUES ($1, $2)"
+		_, err := db.Exec(query, urlID, url.URL)
+		if err != nil {
+			http.Error(w, "Error inserting URL into database", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintln(w, "URLs fetched and added to the database.")
+}
+
+
 func main() {
 	initDB()
+	fetchAndInsertURLs()
 
 	http.HandleFunc("/new", addURL)
 	http.HandleFunc("/get", getURLs)
