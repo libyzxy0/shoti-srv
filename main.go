@@ -5,13 +5,28 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 )
+
+type VideoInfo struct {
+	ID        string `json:"id"`
+	Region    string `json:"region"`
+	Cover     string `json:"cover"`
+	Title     string `json:"title"`
+	Duration  int    `json:"duration"`
+	Author    struct {
+		UniqueID  string `json:"unique_id"`
+		Nickname  string `json:"nickname"`
+		UserID    string `json:"id"`
+	} `json:"author"`
+}
 
 type URL struct {
 	ID  string `json:"id"`
@@ -66,6 +81,81 @@ func setupSchema() {
 		log.Fatal("Error setting up database schema:", err)
 	}
 	fmt.Println("Database schema set up successfully.")
+}
+
+func getRandomURL() (string, error) {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM urls").Scan(&count)
+	if err != nil {
+		return "", fmt.Errorf("error getting URL count: %w", err)
+	}
+
+	if count == 0 {
+		return "", fmt.Errorf("no URLs found in the database")
+	}
+
+	rand.Seed(time.Now().UnixNano())
+	randomIndex := rand.Intn(count) + 1
+
+	var url string
+	query := fmt.Sprintf("SELECT url FROM urls LIMIT 1 OFFSET %d", randomIndex-1)
+	err = db.QueryRow(query).Scan(&url)
+	if err != nil {
+		return "", fmt.Errorf("error retrieving random URL: %w", err)
+	}
+
+	return url, nil
+}
+
+func getVideoInfo(url string) (*VideoInfo, error) {
+	response, err := http.Get(fmt.Sprintf("https://tikwm.com/api?url=%s", url))
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	var videoInfo VideoInfo
+	err = json.NewDecoder(response.Body).Decode(&videoInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	return &videoInfo, nil
+}
+
+func getVideoData(w http.ResponseWriter, r *http.Request) {
+	randomURL, err := getRandomURL()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error fetching random URL: %s", err), http.StatusInternalServerError)
+		return
+	}
+
+	videoInfo, err := getVideoInfo(randomURL)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error fetching video: %s", err), http.StatusInternalServerError)
+		return
+	}
+
+	responseData := map[string]interface{}{
+		"code":    200,
+		"message": "success",
+		"data": map[string]interface{}{
+			"_shoti_rank": "userRank",
+			"region":      videoInfo.Region,
+			"url":         "https://www.tikwm.com/video/media/hdplay/" + videoInfo.ID + ".mp4",
+			"cover":       videoInfo.Cover,
+			"title":       videoInfo.Title,
+			"duration":    fmt.Sprintf("%ds", videoInfo.Duration),
+			"user": map[string]interface{}{
+				"username": videoInfo.Author.UniqueID,
+				"nickname": videoInfo.Author.Nickname,
+				"userID":   videoInfo.Author.UserID,
+			},
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(responseData)
 }
 
 func addURL(w http.ResponseWriter, r *http.Request) {
@@ -142,9 +232,10 @@ func main() {
 	initDB()
 
 	http.HandleFunc("/new", addURL)
-	http.HandleFunc("/get", getURLs)
+	http.HandleFunc("/list", getURLs)
 	http.HandleFunc("/clr", clearURLs)
-	
+	http.HandleFunc("/get", getVideoData)
+
 	fmt.Println("Server started on port 8080...")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
