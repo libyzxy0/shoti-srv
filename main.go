@@ -108,59 +108,61 @@ func getRandomURL() (string, error) {
 }
 
 func getVideoInfo(url string) (*VideoInfo, error) {
-	response, err := http.Get(fmt.Sprintf("https://tikwm.com/api?url=%s", url))
-	if err != nil {
-		return nil, err
-	}
-	defer response.Body.Close()
+    response, err := http.Get(fmt.Sprintf("https://tikwm.com/api?url=%s", url))
+    if err != nil {
+        return nil, err
+    }
+    defer response.Body.Close()
 
-	var videoInfo VideoInfo
-	err = json.NewDecoder(response.Body).Decode(&videoInfo)
-	if err != nil {
-		return nil, err
-	}
+    var videoInfo VideoInfo
+    err = json.NewDecoder(response.Body).Decode(&videoInfo)
+    if err != nil {
+        return nil, err
+    }
 
-	return &videoInfo, nil
+    fmt.Println("Video Info:", videoInfo)
+
+    return &videoInfo, nil
 }
 
 func getVideoData(w http.ResponseWriter, r *http.Request) {
-	randomURL, err := getRandomURL()
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Error fetching random URL: %s", err), http.StatusInternalServerError)
-		return
-	}
+    randomURL, err := getRandomURL()
+    if err != nil {
+        http.Error(w, fmt.Sprintf("Error fetching random URL: %s", err), http.StatusInternalServerError)
+        return
+    }
 
-	videoInfo, err := getVideoInfo(randomURL)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Error fetching video: %s", err), http.StatusInternalServerError)
-		return
-	}
+    fmt.Println("Fetching video for URL:", randomURL)
 
-	// Print the video information to the server log (for debugging purposes)
-	fmt.Println(videoInfo)
+    videoInfo, err := getVideoInfo(randomURL)
+    if err != nil {
+        http.Error(w, fmt.Sprintf("Error fetching video: %s", err), http.StatusInternalServerError)
+        return
+    }
 
-	// Prepare the response data
-	responseData := map[string]interface{}{
-		"code":    200,
-		"message": "success",
-		"data": map[string]interface{}{
-			"region":      videoInfo.Region,
-			"url":         "https://www.tikwm.com/video/media/hdplay/" + videoInfo.ID + ".mp4",
-			"cover":       videoInfo.Cover,
-			"title":       videoInfo.Title,
-			"duration":    fmt.Sprintf("%ds", videoInfo.Duration),
-			"user": map[string]interface{}{
-				"username": videoInfo.Author.UniqueID,
-				"nickname": videoInfo.Author.Nickname,
-				"userID":   videoInfo.Author.UserID,
-			},
-		},
-	}
+    fmt.Println(videoInfo)
 
-	// Send the JSON response
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(responseData)
+    responseData := map[string]interface{}{
+        "code":    200,
+        "message": "success",
+        "data": map[string]interface{}{
+            "region":      videoInfo.Region,
+            "url":         "https://www.tikwm.com/video/media/hdplay/" + videoInfo.ID + ".mp4",
+            "cover":       videoInfo.Cover,
+            "title":       videoInfo.Title,
+            "duration":    fmt.Sprintf("%ds", videoInfo.Duration),
+            "user": map[string]interface{}{
+                "username": videoInfo.Author.UniqueID,
+                "nickname": videoInfo.Author.Nickname,
+                "userID":   videoInfo.Author.UserID,
+            },
+        },
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(responseData)
 }
+
 
 func addURL(w http.ResponseWriter, r *http.Request) {
 	var url URL
