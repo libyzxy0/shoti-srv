@@ -284,9 +284,9 @@ func getURLs(w http.ResponseWriter, r *http.Request) {
 func main() {
 	initDB()
 
-	http.HandleFunc("/add-url", addURL)
-	http.HandleFunc("/get-urls", getURLs)
-	http.HandleFunc("/video-data", getVideoData)
+	http.HandleFunc("/api/new", addURL)
+	http.HandleFunc("/api/list", getURLs)
+	http.HandleFunc("/api/get", getVideoData)
 
 	port := os.Getenv("PORT")
 	if port == "" {
