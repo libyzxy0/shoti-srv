@@ -16,17 +16,42 @@ import (
 )
 
 type VideoInfo struct {
-	ID        string `json:"id"`
-	Region    string `json:"region"`
-	Cover     string `json:"cover"`
-	Title     string `json:"title"`
-	Duration  int    `json:"duration"`
-	Author    struct {
-		UniqueID  string `json:"unique_id"`
-		Nickname  string `json:"nickname"`
-		UserID    string `json:"id"`
-	} `json:"author"`
+    Code    int    `json:"code"`
+    Msg     string `json:"msg"`
+    Data    struct {
+        ID             string `json:"id"`
+        Region        string `json:"region"`
+        Title         string `json:"title"`
+        Cover         string `json:"cover"`
+        AI_Dynamic_Cover string `json:"ai_dynamic_cover"`
+        Origin_Cover  string `json:"origin_cover"`
+        Duration      int    `json:"duration"`
+        Play          string `json:"play"`
+        WMPlay        string `json:"wmplay"`
+        Size          int    `json:"size"`
+        WMSize        int    `json:"wm_size"`
+        Music         struct {
+            ID    string `json:"id"`
+            Title string `json:"title"`
+            Play  string `json:"play"`
+            Cover string `json:"cover"`
+        } `json:"music_info"`
+        PlayCount   int `json:"play_count"`
+        DiggCount   int `json:"digg_count"`
+        CommentCount int `json:"comment_count"`
+        ShareCount  int `json:"share_count"`
+        DownloadCount int `json:"download_count"`
+        CollectCount int `json:"collect_count"`
+        CreateTime  int64 `json:"create_time"`
+        Author struct {
+            ID       string `json:"id"`
+            UniqueID string `json:"unique_id"`
+            Nickname string `json:"nickname"`
+            Avatar   string `json:"avatar"`
+        } `json:"author"`
+    } `json:"data"`
 }
+
 
 type URL struct {
 	ID  string `json:"id"`
@@ -128,13 +153,12 @@ func getVideoInfo(url string) (*VideoInfo, error) {
         return nil, fmt.Errorf("error decoding video info: %w", err)
     }
 
-    if (videoInfo == VideoInfo{}) {
-        return nil, fmt.Errorf("empty or invalid response from API")
+    if videoInfo.Code != 0 {
+        return nil, fmt.Errorf("API error: %s", videoInfo.Msg)
     }
 
     return &videoInfo, nil
 }
-
 
 func getVideoData(w http.ResponseWriter, r *http.Request) {
     randomURL, err := getRandomURL()
