@@ -20,14 +20,12 @@ type URL struct {
 
 var db *sql.DB
 
-// initDB initializes the database connection and ensures the schema is set up
 func initDB() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
-	// Build the database connection string
 	connStr := fmt.Sprintf(
 		"user=%s password=%s host=%s dbname=%s sslmode=%s",
 		os.Getenv("DB_USER"),
@@ -37,7 +35,6 @@ func initDB() {
 		os.Getenv("DB_SSLMODE"),
 	)
 
-	// Initialize database connection
 	db, err = sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal(err)
@@ -50,13 +47,10 @@ func initDB() {
 
 	fmt.Println("Connected to the database.")
 
-	// Set up the database schema
 	setupSchema()
 }
 
-// setupSchema sets up the necessary schema in the database
 func setupSchema() {
-	// Define the schema creation query
 	query := `
 	CREATE TABLE IF NOT EXISTS urls (
 		id UUID PRIMARY KEY,
@@ -64,7 +58,6 @@ func setupSchema() {
 	);
 	`
 
-	// Execute the schema creation query
 	_, err := db.Exec(query)
 	if err != nil {
 		log.Fatal("Error setting up database schema:", err)
@@ -72,17 +65,14 @@ func setupSchema() {
 	fmt.Println("Database schema set up successfully.")
 }
 
-// addURL handles adding a new URL to the database
 func addURL(w http.ResponseWriter, r *http.Request) {
 	var url URL
 
-	// Ensure the content type is application/json
 	if r.Header.Get("Content-Type") != "application/json" {
 		http.Error(w, "Content-Type must be application/json", http.StatusBadRequest)
 		return
 	}
 
-	// Parse the incoming JSON request body into the URL struct
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&url)
 	if err != nil {
@@ -94,10 +84,8 @@ func addURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate a new UUID for the URL
 	url.ID = uuid.New().String()
 
-	// Insert the URL into the database
 	query := "INSERT INTO urls (id, url) VALUES ($1, $2)"
 	_, err = db.Exec(query, url.ID, url.URL)
 	if err != nil {
@@ -105,12 +93,10 @@ func addURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Respond with the added URL
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(url)
 }
 
-// getURLs retrieves all URLs from the database
 func getURLs(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query("SELECT id, url FROM urls")
 	if err != nil {
