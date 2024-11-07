@@ -23,10 +23,11 @@ var db *sql.DB
 func initDB() {
 
 	// only load the .env file when running locally
-// check for a RAILWAY_ENVIRONMENT, if not found, code is running locally
-if _, exists := os.LookupEnv("RAILWAY_ENVIRONMENT"); exists == false {
-    if err := godotenv.Load(); err != nil {
-        log.Fatal("error loading .env file:", err)
+// check for a RAILWAY_ENVIRONMENT, if not found, the code is running locally
+if _, exists := os.LookupEnv("RAILWAY_ENVIRONMENT"); !exists {
+    err := godotenv.Load()
+    if err != nil {
+        log.Fatal("Error loading .env file:", err)
     }
 }
 
